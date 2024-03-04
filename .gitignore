@@ -5,6 +5,7 @@
 /.env/
 /Env/
 /Venv/
+.env
 
 # python byte-compiled
 __pycache__
