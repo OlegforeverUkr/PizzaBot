@@ -1,7 +1,7 @@
 from aiogram.filters import CommandStart, Command, or_f
 from aiogram import types, Router, F
 from filters.chat_types import ChatTypeFilter
-from keyboards import reply_kbrd
+from keyboards.reply_kbrd import get_keyboard
 from aiogram.utils.formatting import as_list, as_marked_section, Bold
 
 
@@ -13,15 +13,22 @@ user_private_router.message.filter(ChatTypeFilter(["private"]))
 @user_private_router.message(CommandStart())
 async def start(message: types.Message):
     await message.answer(
-        "Добро пожаловать в нашу пиццерию, рады Вас видеть!!!",
-        reply_markup=reply_kbrd.start_kbrd)                                        #Добавляем клавиатуру для отправки
+        "Привет, я виртуальный помощник",
+        reply_markup=get_keyboard(                             #Добавляем клавиатуру сделанной функцией
+            "Меню",
+            "О магазине",
+            "Варианты оплаты",
+            "Варианты доставки",
+            placeholder="Что вас интересует?",
+            sizes=(2, 2)
+        )
+    )
 
 
 
 
 
-@user_private_router.message(or_f(Command("menu"),
-                             F.text.lower().contains('меню')))   # Добавляем условия срабатывания хендлера(или команда меню или текст, содержащий слово меню
+@user_private_router.message(or_f(Command("menu"), F.text.lower().contains('меню')))   # Добавляем условия срабатывания хендлера(или команда меню или текст, содержащий слово меню
 async def menu_command(message: types.Message):
     await message.answer("<b>Вот наше меню:</b>")
 
