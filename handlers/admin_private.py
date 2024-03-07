@@ -46,9 +46,8 @@ async def delete_product(message: types.Message):
 
 
 
+#_____________________________________Код ниже для машины состояний______________________________________________
 
-
-#Код ниже для машины состояний (FSM)
 
 class AddProduct(StatesGroup):               # Создаем класс, наследуясь от StatesGroup и прописываем все состояния
     name = State()
@@ -56,6 +55,55 @@ class AddProduct(StatesGroup):               # Создаем класс, нас
     price = State()
     image = State()
 
+    text = {
+        'AddProduct:name': "Введите название заново",
+        'AddProduct:description': "Введите описание заново",
+        'AddProduct:price': "Введите цену заново",
+        'AddProduct:image': "Этот шаг последний, поэтому ...",
+    }
+
+
+
+#_____________________________________Хендлеры отмена и команды назад_______________________________________
+
+
+@admin_router.message(StateFilter('*'), Command("назад"))              # Добавляем проверку состояния, и выбираем любое состояние
+@admin_router.message(StateFilter('*'), F.text.casefold() == "назад")
+async def back_step_handler(message: types.Message, state: FSMContext) -> None:
+
+    current_state = await state.get_state()                            # Получаем текущее состояние юзера
+
+    if current_state == AddProduct.name:
+        await message.answer('Предидущего шага нет, или введите название товара или введите "отмена"')
+        return
+
+    previous = None                                                    # Вводим переменную для получения стейта
+    for step in AddProduct.__all_states__:                             # Проходим циклом по всем стейтам
+        if step.state == current_state:                                # Находим соответствующий нашему состоянию стейт
+            await state.set_state(previous)                            # Меняем текущее состояние на предудыщее(так как в переменной еще не поменян стейт на текущий)
+            await message.answer(f"Ок, вы вернулись к прошлому шагу \n{AddProduct.text[previous.state]}")
+            return
+        previous = step                                                # Если наш стейт не равен текущеми, то записываем в переменную стейт из цикла
+
+
+
+
+@admin_router.message(StateFilter("*"), Command("отмена"))              # Добавляем проверку состояния, и выбираем любое состояние
+@admin_router.message(StateFilter("*"), F.text.casefold() == "отмена")
+async def cancel_handler(message: types.Message, state: FSMContext) -> None:
+
+    current_state = state.get_state()                                   # Получаем текущее состояние юзера
+
+    if current_state is None:                                           # Если его нет, просто продолжаем работу
+        return
+
+    await state.clear()                                                 # Если есть, то сбрасываем его и возвращаем админ клавиатуру
+    await message.answer("Действия отменены", reply_markup=ADMIN_KB)
+
+
+
+
+#_____________________________________Хендлеры для ввода нового товара______________________________________
 
 
 @admin_router.message(StateFilter(None), F.text == "Добавить товар")    # Добавляем StateFilter для проверки того, что у юзера сейчас нет активного состояния
@@ -63,19 +111,6 @@ async def add_product(message: types.Message, state: FSMContext):       # Доб
     await message.answer("Введите название товара", reply_markup=types.ReplyKeyboardRemove())
     await state.set_state(AddProduct.name)                              # Ставим нашего юзера в состояние ввода названия товара
 
-
-
-@admin_router.message(Command("отмена"))
-@admin_router.message(F.text.casefold() == "отмена")
-async def cancel_handler(message: types.Message, state: FSMContext) -> None:
-    await message.answer("Действия отменены", reply_markup=ADMIN_KB)
-
-
-
-@admin_router.message(Command("назад"))
-@admin_router.message(F.text.casefold() == "назад")
-async def cancel_handler(message: types.Message, state: FSMContext) -> None:
-    await message.answer(f"ок, вы вернулись к прошлому шагу")
 
 
 
@@ -97,6 +132,13 @@ async def add_description(message: types.Message, state: FSMContext):
 
 @admin_router.message(StateFilter(AddProduct.price), F.text)
 async def add_price(message: types.Message, state: FSMContext):
+
+    try:                                                                # Добавляем проверку цены на валидный ввод числа
+        float(message.text)
+    except ValueError:
+        await message.answer("Введите корректное значение цены")
+        return
+
     await state.update_data(price=message.text)
     await message.answer("Загрузите изображение товара")
     await state.set_state(AddProduct.image)
