@@ -121,12 +121,24 @@ async def add_name(message: types.Message, state: FSMContext):
     await state.set_state(AddProduct.description)                       # Меняем состояние юзера на следующее
 
 
+@admin_router.message(StateFilter(AddProduct.name))                     # После каждого хендлера делаем второй для проверки правильности ввода данных на предыдущем шаге
+async def add_name(message: types.Message):
+    await message.answer("Введите корректные данные описание товара")
+
+
 
 @admin_router.message(StateFilter(AddProduct.description), F.text)      # Приверяем юзера на состояние ввода описания товара
 async def add_description(message: types.Message, state: FSMContext):
     await state.update_data(description=message.text)                   # Берем из сообщения текст и вносим его в словарь с ключем description
     await message.answer("Введите стоимость товара")
     await state.set_state(AddProduct.price)                             # Меняем состояние юзера на следующее
+
+
+
+@admin_router.message(StateFilter(AddProduct.description))
+async def add_name(message: types.Message):
+    await message.answer("Введите корректные данные описания товара")
+
 
 
 
@@ -144,6 +156,11 @@ async def add_price(message: types.Message, state: FSMContext):
     await state.set_state(AddProduct.image)
 
 
+@admin_router.message(StateFilter(AddProduct.price))
+async def add_name(message: types.Message):
+    await message.answer("Введите корректные данные значение цены товара")
+
+
 
 @admin_router.message(AddProduct.image, F.photo)
 async def add_image(message: types.Message, state: FSMContext):
@@ -152,3 +169,8 @@ async def add_image(message: types.Message, state: FSMContext):
     data = await state.get_data()                                       # Получаем все данные в словарь
     await message.answer(str(data))                                     # Отправляем все полученные данные
     await state.clear()                                                 # Сбрасываем машину состояний
+
+
+@admin_router.message(StateFilter(AddProduct.image))
+async def add_name(message: types.Message):
+    await message.answer("Введите корректное изображение")
