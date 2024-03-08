@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.orm_qwery import orm_add_product
+from database.orm_qwery import orm_add_product, orm_get_all_products
 
 from filters.chat_types import ChatTypeFilter, IsAdmin
 from keyboards.reply_kbrd import get_keyboard
@@ -16,11 +16,9 @@ admin_router.message.filter(ChatTypeFilter(["private"]), IsAdmin())
 
 ADMIN_KB = get_keyboard(
     "Добавить товар",
-    "Изменить товар",
-    "Удалить товар",
-    "Я так, просто посмотреть зашел",
+    "Ассортимент",
     placeholder="Выберите действие",
-    sizes=(2, 1, 1),
+    sizes=(2,),
 )
 
 
@@ -31,21 +29,17 @@ async def add_product(message: types.Message):
 
 
 
-@admin_router.message(F.text == "Я так, просто посмотреть зашел")
-async def starring_at_product(message: types.Message):
-    await message.answer("ОК, вот список товаров")
+@admin_router.message(F.text == "Ассортимент")
+async def starring_at_product(message: types.Message, session: AsyncSession):
 
+    for product in await orm_get_all_products(session=session):               # Получаем все продукты из БД, предавая сессию
+        await message.answer_photo(
+            photo=product.image,                                              # Отвечаем юзеру фоткой из бд, передаем название, описание и цену
+            caption=f"<strong>{product.name}</strong>\n"
+                    f"{product.description}\n"
+                    f"Стоимость - {round(product.price, 2)}"                  # Округляем стоимость до 2х знаков
+        )
 
-
-@admin_router.message(F.text == "Изменить товар")
-async def change_product(message: types.Message):
-    await message.answer("ОК, вот список товаров")
-
-
-
-@admin_router.message(F.text == "Удалить товар")
-async def delete_product(message: types.Message):
-    await message.answer("Выберите товар(ы) для удаления")
 
 
 

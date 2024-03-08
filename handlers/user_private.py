@@ -1,5 +1,9 @@
 from aiogram.filters import CommandStart, Command, or_f
 from aiogram import types, Router, F
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from database.orm_qwery import orm_get_all_products
+
 from filters.chat_types import ChatTypeFilter
 from keyboards.reply_kbrd import get_keyboard
 from aiogram.utils.formatting import as_list, as_marked_section, Bold
@@ -29,8 +33,15 @@ async def start(message: types.Message):
 
 
 @user_private_router.message(or_f(Command("menu"), F.text.lower().contains('меню')))   # Добавляем условия срабатывания хендлера(или команда меню или текст, содержащий слово меню
-async def menu_command(message: types.Message):
+async def menu_command(message: types.Message, session: AsyncSession):
     await message.answer("<b>Вот наше меню:</b>")
+    for product in await orm_get_all_products(session=session):               # Получаем все продукты из БД, предавая сессию
+        await message.answer_photo(
+            photo=product.image,                                              # Отвечаем юзеру фоткой из бд, передаем название, описание и цену
+            caption=f"<strong>{product.name}</strong>\n"
+                    f"{product.description}\n"
+                    f"Стоимость - {round(product.price, 2)}"                  # Округляем стоимость до 2х знаков
+        )
 
 
 
