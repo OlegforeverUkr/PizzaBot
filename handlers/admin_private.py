@@ -3,6 +3,9 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from database.orm_qwery import orm_add_product
+
 from filters.chat_types import ChatTypeFilter, IsAdmin
 from keyboards.reply_kbrd import get_keyboard
 
@@ -163,12 +166,24 @@ async def add_name(message: types.Message):
 
 
 @admin_router.message(AddProduct.image, F.photo)
-async def add_image(message: types.Message, state: FSMContext):
+async def add_image(message: types.Message, state: FSMContext, session: AsyncSession):
+
     await state.update_data(image=message.photo[-1].file_id)            # Берем отправленное фото и вносим его в имейдж(-1 значит берем последнее фото- самого высокого качества)
-    await message.answer("Товар добавлен", reply_markup=ADMIN_KB)
     data = await state.get_data()                                       # Получаем все данные в словарь
-    await message.answer(str(data))                                     # Отправляем все полученные данные
-    await state.clear()                                                 # Сбрасываем машину состояний
+
+    try:
+        await orm_add_product(session=session, data=data)               # Передаем данные из машины состояний в функцию по добавлению данных в БД
+        await message.answer("Данные внесены в БД",                # Отвечаем, что данные внесены
+                             reply_markup=ADMIN_KB)
+        await state.clear()                                             # Сбрасываем машину состояний
+    except Exception as e:
+        await message.answer(
+            f"Произошла ошибка при добавлении товара в БД\n"
+            f"{e}\n"
+            f"Обратитесь за помощью к главному админу"
+        )
+        await state.clear()
+
 
 
 @admin_router.message(StateFilter(AddProduct.image))
