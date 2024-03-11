@@ -19,7 +19,7 @@ from commands.bot_cmds_list import private
 from aiogram.enums import ParseMode
 
 
-ALLOW_UPDATES = ["message", "edited_message"]
+# ALLOW_UPDATES = ["message", "edited_message"]   - Делаем список, добавляя методы, которые будет обрабатывать наш бот (await dp.start_polling(bot, allowed_updates=ALLOW_UPDATES))
 
 
 bot = Bot(token=os.getenv("TOKEN"), default=DefaultBotProperties(parse_mode=ParseMode.HTML))  # Выбираем парс мод  для всего бота
@@ -42,7 +42,7 @@ async def main():
 
     await bot.delete_webhook(drop_pending_updates=True)                  # Удалять все входящие сообщения, пока бот не в сети
     await bot.set_my_commands(commands=private, scope=BotCommandScopeAllPrivateChats())  # Добавляем к боту команды, а также выставляем зону их отображения
-    await dp.start_polling(bot, allowed_updates=ALLOW_UPDATES)     # Указываем какие обновления будет обрабатывать наш ТГ бот
+    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())     # Указываем какие обновления будет обрабатывать наш ТГ бот (без данных будет обрабатывать все, а skip_events- для ограничения на обработку)
 
 
 asyncio.run(main())

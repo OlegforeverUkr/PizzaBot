@@ -15,7 +15,7 @@ user_group_router.edited_message.filter(ChatTypeFilter(["group", "supergroup"]))
 добаляя его в список админов, давая возможность использовать админку в личном чате с ботом
 """
 
-@user_group_router.message(F.text == "add new admin")
+@user_group_router.message(F.text == "1")
 async def get_admins(message: types.Message, bot: Bot):
     chat_id = message.chat.id
     admins_list = await bot.get_chat_administrators(chat_id)
