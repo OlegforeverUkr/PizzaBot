@@ -6,14 +6,14 @@ from aiogram import types, Router, F, Bot
 from aiogram.types import LabeledPrice, PreCheckoutQuery, Message
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.orm_qwery import orm_get_all_products, orm_add_to_cart, orm_add_user, orm_get_user_carts, Paginator
+from database.orm_qwery import orm_get_all_products, orm_add_to_cart, orm_add_user, orm_get_user_carts, Paginator, \
+    orm_delete_cart_after_pay, orm_add_to_sold
 
 from filters.chat_types import ChatTypeFilter
 from handlers.menu_processing import get_menu_content
 from keyboards.inline_kbrd import get_callback_btns, MenuCallBack
 from keyboards.reply_kbrd import get_keyboard
 from aiogram.utils.formatting import as_list, as_marked_section, Bold
-
 
 
 user_private_router = Router()
@@ -69,11 +69,10 @@ async def user_menu(callback: types.CallbackQuery, callback_data: MenuCallBack, 
 #___________________________________________Далее идет оплата_______________________________________
 
 @user_private_router.callback_query(F.data == "order_button")
-async def pay_for_product(callback: types.CallbackQuery, session: AsyncSession, bot):
+async def pay_for_product(callback: types.CallbackQuery, session: AsyncSession, bot: Bot):
     carts = await orm_get_user_carts(session=session, user_id=callback.from_user.id)
 
     total_price = round(sum(cart.quantity * cart.product.price for cart in carts), 2)
-    product_in_cart = [i.product.name for i in carts]
     photo_pay = 'https://t1.gstatic.com/licensed-image?q=tbn:ANd9GcSVhJ46pOBVylg5_ZnYilSr14xSgJwSZ386f8C6hRKrA0MRiCpn2ozG-Bfcxa3bSdJ-'
 
     if total_price >= 300:
@@ -86,7 +85,7 @@ async def pay_for_product(callback: types.CallbackQuery, session: AsyncSession, 
         title="Покупка через телеграмм",
         description="Пробная оплата через ТГ Бота",
         payload="Внутренняя инфа для статистики или тд...",
-        provider_token=f"{os.getenv('PAY_TOKEN')}",
+        provider_token=f"{os.getenv('Tranzzo')}",
         currency="UAH",
         prices=[
             LabeledPrice(
@@ -95,7 +94,7 @@ async def pay_for_product(callback: types.CallbackQuery, session: AsyncSession, 
             ),
             LabeledPrice(
                 label="Доставка",
-                amount=cost_delivery
+                amount=cost_delivery*100
             )
         ],
         max_tip_amount=5000,
@@ -103,12 +102,12 @@ async def pay_for_product(callback: types.CallbackQuery, session: AsyncSession, 
         provider_data=None,
         photo_url=photo_pay,
         photo_size=100,
-        photo_width=417,
-        photo_height=626,
+        photo_width=600,
+        photo_height=400,
         need_name=True,
-        need_phone_number=False,
+        need_phone_number=True,
         need_email=False,
-        need_shipping_address=False,  # Меняется ли адрес доставки
+        need_shipping_address=True,  # Меняется ли адрес доставки
         send_phone_number_to_provider=False,
         send_email_to_provider=False,
         is_flexible=False,  # Зависит ли конечгая цена от способа доставки
@@ -121,20 +120,31 @@ async def pay_for_product(callback: types.CallbackQuery, session: AsyncSession, 
     )
 
 
+@user_private_router.pre_checkout_query()
 async def pre_check(pre_check_qwery: PreCheckoutQuery, bot: Bot):
     await bot.answer_pre_checkout_query(pre_check_qwery.id, ok=True)
 
 
 
-async def succsess_pay(message: Message):
-    answ = f"{message.from_user.first_name}, спасибо за оплату!"
-    await message.answer(answ)
+@user_private_router.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
+async def succsess_pay(message: Message, session: AsyncSession):
+    carts = await orm_get_user_carts(session=session, user_id=message.from_user.id)
+    products_id = [i.product.id for i in carts]
 
+    for i in products_id:
+        await orm_add_to_sold(session=session, message=message, product_id=i)
+
+    await orm_delete_cart_after_pay(session=session, user_id=message.from_user.id)
+    await message.answer(f"{message.from_user.first_name}, спасибо за оплату!")
+
+    media, reply_markup = await get_menu_content(session, level=0, menu_name="main")
+
+    await message.answer_photo(media.media, caption=media.caption, reply_markup=reply_markup)
 
 
 
 """
-_________________________________Ниже код до обновления бота под новый формат_________________________
+_________________________________Ниже код до обновления бота под старый формат_________________________
 
 @user_private_router.message(CommandStart())
 async def start(message: types.Message):

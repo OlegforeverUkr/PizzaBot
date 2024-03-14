@@ -40,11 +40,6 @@ async def main():
     dp.shutdown.register(on_shutdown)                                    # Останавливаем базу данных (опционально)
 
     dp.update.middleware(DataBaseSession(session_pool=session_maker))    # Вешаем сессию на все обновления(можно отдельно на роутер админа, роутер привата и т д...)
-
-    dp.pre_checkout_query.register(pre_check)
-    dp.message.register(succsess_pay, F.content_type == ContentType.SUCCESSFUL_PAYMENT)
-
-
     await bot.delete_webhook(drop_pending_updates=True)                  # Удалять все входящие сообщения, пока бот не в сети
 
     # await bot.set_my_commands(commands=private, scope=BotCommandScopeAllPrivateChats())   Добавляем к боту команды, а также выставляем зону их отображения

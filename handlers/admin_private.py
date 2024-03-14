@@ -232,9 +232,9 @@ async def add_product(message: types.Message, state: FSMContext):       # Доб
 
 # Хендлер для ввода названия товара
 @admin_router.message(StateFilter(AddProduct.name),
-                      or_f(F.text, F.text == "1"))            # Приверяем юзера на состояние ввода названия товара (или на 2 пробела для использования старого имени)
+                      or_f(F.text, F.text == "1"))            # Приверяем юзера на состояние ввода названия товара (или 1 для использования старого имени)
 async def add_name(message: types.Message, state: FSMContext):
-    if message.text == "1":                                           # Делаем проверку, если было введено два пробела, то берем данные из сохраненных в БД
+    if message.text == "1":                                           # Делаем проверку, если было введено 1, то берем данные из сохраненных в БД
         await state.update_data(name=AddProduct.product_for_change.name)
     else:
         if len(message.text) >= 100:

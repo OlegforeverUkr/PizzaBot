@@ -1,12 +1,11 @@
 import math
 
+from aiogram.types import Message
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from database.models import Banner, Cart, Category, Product, User
-
-
+from database.models import Banner, Cart, Category, Product, User, Sold
 
 
 #______________________________________________________Paginator_________________________________________________
@@ -214,3 +213,55 @@ async def orm_reduce_product_in_cart(session: AsyncSession, user_id: int, produc
         await orm_delete_from_cart(session, user_id, product_id)
         await session.commit()
         return False
+
+
+
+#________________________________________Для работы с совершенными покупками________________________
+
+
+async def orm_add_to_sold(session: AsyncSession, message: Message, product_id: int):
+    query = select(Sold).where(Sold.user_id == message.from_user.id, Sold.product_id == product_id)
+    sold_entry = await session.execute(query)
+    sold_entry = sold_entry.scalar()
+
+    if sold_entry is not None:
+        sold_entry.quantity += 1
+        sold_entry.total_sum = sold_entry.quantity * sold_entry.product.price
+    else:
+        query = select(Cart).where(Cart.user_id == message.from_user.id, Cart.product_id == product_id)
+        cart = await session.execute(query)
+        cart = cart.scalar()
+
+        if cart is not None:
+            product = cart.product
+            product_name = product.name
+            user_id = message.from_user.id
+            name = message.from_user.first_name
+            address = message.successful_payment.order_info.shipping_address.street_line1
+            phone = message.successful_payment.order_info.phone_number
+            quantity = cart.quantity
+            total_sum = product.price * quantity
+
+            sold_entry = Sold(
+                user_id=user_id,
+                user_name = name,
+                address = address,
+                phone = phone,
+                product_id=product_id,
+                product_name=product_name,
+                quantity=quantity,
+                total_sum=total_sum
+            )
+            session.add(sold_entry)
+    await session.commit()
+
+
+
+async def orm_delete_cart_after_pay(session: AsyncSession, user_id: int):
+    query = delete(Cart).where(Cart.user_id == user_id)
+    await session.execute(query)
+    await session.commit()
+
+
+
+

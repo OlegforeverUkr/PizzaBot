@@ -73,7 +73,7 @@ def get_products_btns(
                                       callback_data=MenuCallBack(level=level - 1, menu_name='catalog').pack()))
     keyboard.add(InlineKeyboardButton(text='Корзина 🛒',
                                       callback_data=MenuCallBack(level=3, menu_name='cart').pack()))
-    keyboard.add(InlineKeyboardButton(text='Купить 💵',
+    keyboard.add(InlineKeyboardButton(text='Добавить в корзину 💵',
                                       callback_data=MenuCallBack(level=level, menu_name='add_to_cart',
                                                                  product_id=product_id).pack()))
 
@@ -140,7 +140,7 @@ def get_user_cart(
         row2 = [
             InlineKeyboardButton(text='На главную 🏠',
                                  callback_data=MenuCallBack(level=0, menu_name='main').pack()),
-            InlineKeyboardButton(text='Заказать 💲',
+            InlineKeyboardButton(text='ЗАКАЗАТЬ 💲',
                                  callback_data='order_button'),
         ]
         return keyboard.row(*row2).as_markup()
