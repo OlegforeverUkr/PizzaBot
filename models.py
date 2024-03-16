@@ -70,7 +70,7 @@ class Sold(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey('user.user_id', ondelete='CASCADE'), nullable=False)
     user_name: Mapped[str] = mapped_column(String(20), nullable=False)
     address: Mapped[str] = mapped_column(String(100), nullable=False)
-    phone: Mapped[str] = mapped_column(String(13), nullable=False)
+    phone: Mapped[str] = mapped_column(String(13), nullable=False, unique=True)
     product_id: Mapped[int] = mapped_column(ForeignKey('product.id', ondelete='CASCADE'), nullable=False)
     product_name: Mapped[str] = mapped_column(String(150), nullable=False)
     quantity: Mapped[int]
